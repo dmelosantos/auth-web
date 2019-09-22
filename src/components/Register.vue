@@ -12,11 +12,11 @@
                 <v-card-text>
                   <v-form>
                     <v-text-field
-                      label="Username"
+                      label="E-mail"
                       name="username"
                       prepend-icon="mdi-account"
                       type="text"
-                      v-model="username"
+                      v-model="email"
                     ></v-text-field>
 
                     <v-text-field
@@ -26,14 +26,6 @@
                       prepend-icon="mdi-key"
                       type="password"
                       v-model="password"
-                    ></v-text-field>
-
-                    <v-text-field
-                      label="E-mail"
-                      name="email"
-                      prepend-icon="mdi-email"
-                      type="text"
-                      v-model="email"
                     ></v-text-field>
 
                     <v-text-field
@@ -60,53 +52,50 @@
 </template>
 
 <script>
-import AWS from 'aws-sdk'
+import AWS from 'aws-sdk';
+import Vue from 'vue';
 
 export default {
   name: 'Register',
   components: {},
   data: () => ({
-    username: '',
     password: '',
     email: '',
-    phone: ''
+    phone: '',
   }),
   methods: {
     register() {
       const identityServiceProvider = new AWS.CognitoIdentityServiceProvider();
 
       const params = {
-        ClientId: '5k631d5q6jvt7r2cdma3pgolsk', /* required */
+        ClientId: Vue.config.cognitoClientId, /* required */
         Password: this.password, /* required */
         Username: this.email, /* required */
         UserAttributes: [
           {
             Name: 'email',
-            Value: this.email
+            Value: this.email,
           },
           {
             Name: 'phone_number',
-            Value: this.phone
+            Value: this.phone,
           },
         ],
       };
       const router = this.$router;
-      identityServiceProvider.signUp(params, function(err, data) {
+      const { email } = this;
+      identityServiceProvider.signUp(params, (err, data) => {
         if (err) {
           alert(err);
-        }
-        else {
-          router.push({
-            name: 'confirm',
-            params: { username: this.username }
-          });
+        } else {
+          router.push(`/confirm/register/${email}`);
         }
       });
     },
 
     back() {
       this.$router.push('/');
-    }
-  }
+    },
+  },
 };
 </script>

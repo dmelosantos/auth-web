@@ -5,16 +5,26 @@
       <v-flex xs12 sm8 md4>
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
-            <v-toolbar-title>Confirm sign-up</v-toolbar-title>
+            <v-toolbar-title>Type your new password</v-toolbar-title>
           </v-toolbar>
           <v-card-text>
             <v-form>
               <v-text-field
-                label="Username"
-                name="username"
+                label="Email"
+                name="email"
                 prepend-icon="mdi-account"
                 type="text"
                 v-model="email"
+                disabled="true"
+              ></v-text-field>
+
+              <v-text-field
+                id="password"
+                label="New Password"
+                name="password"
+                prepend-icon="mdi-key"
+                type="password"
+                v-model="password"
               ></v-text-field>
 
               <v-text-field
@@ -29,7 +39,7 @@
           <v-card-actions>
             <v-btn color="primary" @click="back">Back</v-btn>
             <v-spacer></v-spacer>
-            <v-btn color="primary" @click="confirm">Confirm</v-btn>
+            <v-btn color="primary" @click="confirmChangePassword">Confirm</v-btn>
           </v-card-actions>
         </v-card>
       </v-flex>
@@ -39,42 +49,39 @@
 </template>
 
 <script>
-import AWS from 'aws-sdk';
+import * as AmazonCognitoIdentity from 'amazon-cognito-identity-js';
 import Vue from 'vue';
 
 export default {
-  name: 'Confirm',
+  name: 'ChangePassword',
   components: {},
   data: () => ({
     email: '',
     code: '',
+    password: '',
   }),
   mounted() {
     this.email = this.$route.params.email ? this.$route.params.email : '';
   },
   methods: {
-    confirm() {
-      const identityServiceProvider = new AWS.CognitoIdentityServiceProvider();
-
-      const params = {
-        ClientId: Vue.config.cognitoClientId, /* required */
-        ConfirmationCode: this.code, /* required */
-        Username: this.email, /* required */
-      };
+    confirmChangePassword() {
+      const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+        UserPoolId: Vue.config.cognitoUserPoolId,
+        ClientId: Vue.config.cognitoClientId,
+      });
+      const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+        Username: this.email,
+        Pool: userPool,
+      });
       const router = this.$router;
-      if (this.$route.params.type === 'register') {
-        identityServiceProvider.confirmSignUp(params, (err, data) => {
-          if (err) {
-            console.log(err);
-          } else {
-            console.log(data);
-            router.push({
-              name: 'login',
-              params: { username: this.username },
-            });
-          }
-        });
-      }
+      cognitoUser.confirmPassword(this.code, this.password, {
+        onSuccess: (data) => {
+          router.push('/?passwordChanged=true');
+        },
+        onFailure: (err) => {
+          alert(err);
+        },
+      });
     },
 
     back() {
